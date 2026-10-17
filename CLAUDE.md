@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     make shot     # run the sim ~3s and save a frame to shot.png (needs a display)
     make import   # force a Godot asset reimport
     make export   # standalone Linux x86_64 binary at build/dice-sim.x86_64
+    make test-export  # export, then drive the binary headless over a socket (1-5 dice, every input)
     make clean    # drop godot/.godot, the GLB, shot.png and build/
 
 Override the binaries with `make GODOT=/path/to/godot BLENDER=/path/to/blender`.
@@ -30,6 +31,14 @@ Developed against Blender 5.2 and Godot 4.7.
 version (here `~/.local/share/godot/export_templates/4.7.2.stable/`, Linux
 x86_64 only). The preset in `godot/export_presets.cfg` embeds the pack in the
 binary and excludes `tests/`.
+
+Because `tests/` is not shipped, `make test-export` drives the binary from
+outside: `tests/export_test.py` listens on a localhost port and launches the
+game with `-- --remote-input=127.0.0.1:PORT`. The `RemoteInput` autoload
+(`scripts/remote_input.gd`) is inert without that flag; with it, it connects
+out, holds the game paused until `resume`, and turns line commands (`key`,
+`click`, `wait`, `get`, `watch`) into input events and replies. It knows
+nothing about dice; the test relies on `main.gd`'s `rolled(results)` signal.
 
 ## Architecture
 

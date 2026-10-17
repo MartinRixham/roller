@@ -2,7 +2,7 @@ BLENDER ?= blender
 GODOT   ?= godot
 GLB     := godot/assets/dice.glb
 
-.PHONY: all run test import export clean
+.PHONY: all run test import export test-export clean
 
 all: $(GLB)
 
@@ -30,6 +30,10 @@ shot: $(GLB)
 export: $(GLB)
 	mkdir -p build
 	$(GODOT) --headless --path godot --export-release Linux
+
+## Drive the exported binary headless over its remote-input socket.
+test-export: export
+	python3 godot/tests/export_test.py build/dice-sim.x86_64
 
 clean:
 	rm -rf godot/.godot $(GLB) shot.png build

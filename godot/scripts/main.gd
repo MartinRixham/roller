@@ -1,6 +1,9 @@
 extends Node3D
 ## Spawns the dice, throws them on input and reports the total.
 
+## Emitted once every die from a roll has settled, values sorted.
+signal rolled(results: Array[int])
+
 const DieScene := preload("res://scenes/die.tscn")
 
 const MAX_DICE := 5
@@ -95,3 +98,5 @@ func _on_die_settled(value: int) -> void:
 		_readout.text = parts[0]
 	else:
 		_readout.text = "%s  =  %d" % [" + ".join(parts), total]
+
+	rolled.emit(_results.duplicate())

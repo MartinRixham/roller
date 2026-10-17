@@ -33,7 +33,7 @@ func _build_table() -> void:
 	var floor_shape := BoxShape3D.new()
 	floor_shape.size = Vector3(8, 0.5, 8)
 	var wall_shape := BoxShape3D.new()
-	wall_shape.size = Vector3(8, 3, 0.5)
+	wall_shape.size = Vector3(8, 8, 0.5)
 
 	var floor_collider := CollisionShape3D.new()
 	floor_collider.shape = floor_shape
@@ -41,8 +41,8 @@ func _build_table() -> void:
 	table.add_child(floor_collider)
 
 	for spot in [
-		Vector3(0, 1.5, -3.5), Vector3(0, 1.5, 3.5),
-		Vector3(-3.5, 1.5, 0), Vector3(3.5, 1.5, 0),
+		Vector3(0, 4, -3.5), Vector3(0, 4, 3.5),
+		Vector3(-3.5, 4, 0), Vector3(3.5, 4, 0),
 	]:
 		var collider := CollisionShape3D.new()
 		collider.shape = wall_shape
