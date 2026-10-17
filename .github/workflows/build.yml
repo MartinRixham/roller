@@ -1,0 +1,80 @@
+name: build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2
+  BLENDER_VERSION: 5.2.2
+  TOOLS: /home/runner/tools
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      # Blender needs a handful of X/GL libraries even with --background.
+      - name: Install Blender runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1 libegl1 libxi6 libxxf86vm1 libxfixes3 libxrender1 libxkbcommon0 libsm6
+
+      - name: Cache Blender and Godot
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.TOOLS }}
+            ~/.local/share/godot/export_templates
+          key: tools-blender${{ env.BLENDER_VERSION }}-godot${{ env.GODOT_VERSION }}
+
+      - name: Download Blender and Godot
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$TOOLS"
+          cd "$TOOLS"
+
+          minor=${BLENDER_VERSION%.*}
+          curl -fsSL "https://download.blender.org/release/Blender${minor}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" \
+            | tar -xJ
+          mv "blender-${BLENDER_VERSION}-linux-x64" blender
+
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSLo godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          rm godot.zip
+
+          # The template bundle covers every platform; keep only Linux x86_64.
+          templates=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mkdir -p "$templates"
+          curl -fsSLo templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -qj templates.tpz 'templates/version.txt' 'templates/linux_*.x86_64' -d "$templates"
+          rm templates.tpz
+
+      - name: Tool versions
+        run: |
+          "$TOOLS/blender/blender" --version | head -1
+          "$TOOLS/godot" --version
+
+      - name: Generate mesh and import
+        run: make BLENDER="$TOOLS/blender/blender" GODOT="$TOOLS/godot"
+
+      - name: Fairness test
+        run: make test BLENDER="$TOOLS/blender/blender" GODOT="$TOOLS/godot"
+
+      - name: Export and test the binary
+        run: make test-export BLENDER="$TOOLS/blender/blender" GODOT="$TOOLS/godot"
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: dice-sim-linux-x86_64
+          path: build/dice-sim.x86_64
+          if-no-files-found: error
