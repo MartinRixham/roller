@@ -9,7 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
     make test     # headless fairness check: 120 rolls, fails if any face never comes up
     make shot     # run the sim ~3s and save a frame to shot.png (needs a display)
     make import   # force a Godot asset reimport
-    make clean    # drop godot/.godot, the GLB and shot.png
+    make export   # standalone Linux x86_64 binary at build/dice-sim.x86_64
+    make clean    # drop godot/.godot, the GLB, shot.png and build/
 
 Override the binaries with `make GODOT=/path/to/godot BLENDER=/path/to/blender`.
 
@@ -24,6 +25,11 @@ Roll count and the per-roll settle timeout are constants at the top of
 `tests/roll_test.gd`.
 
 Developed against Blender 5.2 and Godot 4.7.
+
+`make export` needs the official Godot export templates for the exact engine
+version (here `~/.local/share/godot/export_templates/4.7.2.stable/`, Linux
+x86_64 only). The preset in `godot/export_presets.cfg` embeds the pack in the
+binary and excludes `tests/`.
 
 ## Architecture
 

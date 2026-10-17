@@ -2,7 +2,7 @@ BLENDER ?= blender
 GODOT   ?= godot
 GLB     := godot/assets/dice.glb
 
-.PHONY: all run test import clean
+.PHONY: all run test import export clean
 
 all: $(GLB)
 
@@ -26,5 +26,10 @@ test: $(GLB)
 shot: $(GLB)
 	XMODIFIERS= $(GODOT) --path godot tests/shot.tscn -- $(CURDIR)/shot.png
 
+## Standalone Linux binary with the game embedded, in build/.
+export: $(GLB)
+	mkdir -p build
+	$(GODOT) --headless --path godot --export-release Linux
+
 clean:
-	rm -rf godot/.godot $(GLB) shot.png
+	rm -rf godot/.godot $(GLB) shot.png build
