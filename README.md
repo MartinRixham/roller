@@ -26,6 +26,7 @@ Built against Blender 5.2 and Godot 4.7. Override with `make GODOT=/path/to/godo
     godot/scenes/main.tscn table, camera, light, UI
     godot/scripts/die.gd   throws the die, reports the face pointing up
     godot/scripts/main.gd  spawns dice, handles input, totals the result
+    godot/scripts/dice_sounds.gd  autoload: synthesises the impact sounds
     godot/tests/           headless fairness check and screenshot helper
 
 ## How the die is made
@@ -53,6 +54,20 @@ Blender's Z-up to Y-up, which rotates the mapping; `die.gd` encodes the result:
 `die.gd` reads the roll by taking whichever local axis has the largest dot
 product with world up. A die resting on an edge matches no axis within
 tolerance, so it gets nudged and allowed to fall flat rather than reported.
+
+## Sound
+
+There are no audio files. The `DiceSounds` autoload renders a small bank of
+impact sounds at startup by modal synthesis: a short noise burst for the
+contact plus a few exponentially decaying sine modes for whatever rings
+afterwards. There are three families: a dull thud on the felt, a hollow knock on
+the wooden rails, and a bright clack when two dice hit each other.
+
+Each die listens for impacts by comparing its velocity tick to tick. Any change
+beyond what gravity explains came from a contact, and its size sets the volume.
+Horizontal kicks read as a wall and vertical ones as the felt; touching another
+die overrides both. The recipes are in `_recipe()` in `dice_sounds.gd`, and the
+sensitivity constants (`IMPACT_*`) are at the top of `die.gd`.
 
 ## Tuning
 

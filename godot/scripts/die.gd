@@ -21,13 +21,30 @@ const REST_SPEED := 0.05                 ## below this the die counts as still
 const REST_SPIN := 0.1
 const REST_FRAMES := 8                   ## consecutive still frames before settling
 
+const IMPACT_MIN := 0.6     ## velocity change (units/s) in one tick that is audible
+const IMPACT_LOUD := 9.0    ## velocity change that plays at full volume
+const IMPACT_GAP := 0.035   ## seconds between two sounds from the same die
+const VOICES := 3           ## knocks from one die that can overlap
+
 var _still_frames := 0
 var _rolling := false
+
+var _prev_velocity := Vector3.ZERO
+var _since_impact := 0.0
+var _quiet_ticks := 0
+var _voices: Array[AudioStreamPlayer3D] = []
+var _next_voice := 0
 
 
 func _ready() -> void:
 	contact_monitor = true
 	max_contacts_reported = 4
+
+	for i in VOICES:
+		var voice := AudioStreamPlayer3D.new()
+		voice.unit_size = 6.0
+		add_child(voice)
+		_voices.append(voice)
 
 
 ## Teleport to `from`, scramble the orientation and throw.
@@ -59,6 +76,8 @@ func roll(from: Vector3) -> void:
 	sleeping = false
 	_still_frames = 0
 	_rolling = true
+	_prev_velocity = linear_velocity
+	_quiet_ticks = 1
 
 
 ## The face value currently pointing up, 0 if the die is badly tilted
@@ -76,7 +95,9 @@ func top_face() -> int:
 	return best_value
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	_listen_for_impact(delta)
+
 	if not _rolling:
 		return
 
@@ -94,7 +115,38 @@ func _physics_process(_delta: float) -> void:
 		apply_torque_impulse(Vector3(randf_range(-2, 2), 0, randf_range(-2, 2)))
 		apply_central_impulse(Vector3.UP * 1.5)
 		_still_frames = 0
+		_quiet_ticks = 2   # the nudge is not a collision
 		return
 
 	_rolling = false
 	settled.emit(value)
+
+
+## Any velocity change beyond what gravity accounts for came from a contact
+## this tick; play a knock scaled to how hard it was.
+func _listen_for_impact(delta: float) -> void:
+	var jolt := linear_velocity - _prev_velocity - get_gravity() * delta
+	_prev_velocity = linear_velocity
+	_since_impact += delta
+
+	if _quiet_ticks > 0:
+		_quiet_ticks -= 1
+		return
+	var strength := jolt.length()
+	if strength < IMPACT_MIN or _since_impact < IMPACT_GAP:
+		return
+
+	var surface := DiceSounds.Surface.FELT
+	for body in get_colliding_bodies():
+		if body.has_method("top_face"):
+			# Both dice feel the hit; only one of them plays it.
+			if body.get_instance_id() < get_instance_id():
+				return
+			surface = DiceSounds.Surface.DIE
+			break
+	if surface != DiceSounds.Surface.DIE and absf(jolt.y) < Vector2(jolt.x, jolt.z).length():
+		surface = DiceSounds.Surface.WALL
+
+	_since_impact = 0.0
+	DiceSounds.play(_voices[_next_voice], surface, clampf(strength / IMPACT_LOUD, 0.05, 1.0))
+	_next_voice = (_next_voice + 1) % VOICES

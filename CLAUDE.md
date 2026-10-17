@@ -111,6 +111,15 @@ drifts down like a beach ball. Throw strength, spin and rest thresholds in
 `die.gd` are tuned against this value; changing gravity means retuning them and
 re-running `make test`.
 
+**Impact sounds come from velocity deltas**, not contact signals: `die.gd`
+treats any per-tick change in `linear_velocity` beyond gravity as a hit. Anything
+that sets velocity or applies an impulse on purpose (`roll()`, the cocked-die
+nudge) must set `_quiet_ticks`, or it plays a phantom knock. The sounds use a
+private RNG in the `DiceSounds` autoload so they never perturb the seeded roll
+sequence in `roll_test.gd`. Under `--fixed-fps` the audio thread falls behind,
+which is why the test's `quit()` pauses before exiting; without that pause,
+finished playbacks show up as leaked instances.
+
 **A die can land cocked** on an edge or against a wall. `top_face()` returns 0
 when no axis is within ~45° of up, and `die.gd` nudges the die rather than
 reporting a bogus value, so the settle logic must tolerate a roll that takes

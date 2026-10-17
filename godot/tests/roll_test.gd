@@ -14,6 +14,7 @@ var _done := 0
 var _ticks := 0
 var _total_ticks := 0
 var _die: RigidBody3D
+var _quitting := false
 
 
 func _ready() -> void:
@@ -58,6 +59,8 @@ func _throw() -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	if _quitting:
+		return
 	_ticks += 1
 	if _ticks > TIMEOUT_TICKS:
 		push_error("Roll %d never settled" % (_done + 1))
@@ -94,4 +97,14 @@ func _on_settled(value: int) -> void:
 
 
 func quit(code: int) -> void:
+	# --fixed-fps starts impact sounds far faster than real time, and the audio
+	# thread frees finished playbacks lazily. Silence the die and give the mixer
+	# a moment of wall-clock time, or they show up as leaked instances at exit.
+	if _quitting:
+		return
+	_quitting = true
+	_die.queue_free()
+	await get_tree().process_frame
+	OS.delay_msec(100)
+	await get_tree().process_frame
 	get_tree().quit(code)
