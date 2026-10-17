@@ -1,0 +1,26 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/die.gd" id="1_die"]
+[ext_resource type="PackedScene" path="res://assets/dice.glb" id="2_model"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_die"]
+size = Vector3(0.96, 0.96, 0.96)
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_die"]
+friction = 0.6
+bounce = 0.25
+
+[node name="Die" type="RigidBody3D"]
+mass = 0.4
+physics_material_override = SubResource("PhysicsMaterial_die")
+continuous_cd = true
+linear_damp_mode = 1
+linear_damp = 0.15
+angular_damp_mode = 1
+angular_damp = 0.4
+script = ExtResource("1_die")
+
+[node name="Model" parent="." instance=ExtResource("2_model")]
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_die")
